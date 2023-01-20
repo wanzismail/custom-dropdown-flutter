@@ -1,8 +1,8 @@
 library animated_custom_dropdown;
 
-export 'custom_dropdown.dart';
-
 import 'package:flutter/material.dart';
+
+export 'custom_dropdown.dart';
 
 part 'animated_section.dart';
 part 'dropdown_field.dart';
@@ -21,6 +21,8 @@ class CustomDropdown extends StatefulWidget {
   final TextStyle? selectedStyle;
   final String? errorText;
   final TextStyle? errorStyle;
+  final String? emptyText;
+  final TextStyle? emptyStyle;
   final TextStyle? listItemStyle;
   final BorderSide? borderSide;
   final BorderSide? errorBorderSide;
@@ -28,12 +30,14 @@ class CustomDropdown extends StatefulWidget {
   final Widget? fieldSuffixIcon;
   final Function(String)? onChanged;
   final bool? excludeSelected;
+  final bool isMultipleSelection;
   final Color? fillColor;
   final bool? canCloseOutsideBounds;
   // ignore: library_private_types_in_public_api
   final _SearchType? searchType;
   // ignore: library_private_types_in_public_api
   final _ListItemBuilder? listItemBuilder;
+  final Color? itemSelectedBackgroundColor;
 
   CustomDropdown({
     Key? key,
@@ -44,18 +48,24 @@ class CustomDropdown extends StatefulWidget {
     this.selectedStyle,
     this.errorText,
     this.errorStyle,
+    this.emptyText,
+    this.emptyStyle,
     this.listItemStyle,
     this.errorBorderSide,
     this.borderRadius,
     this.borderSide,
     this.listItemBuilder,
+    this.itemSelectedBackgroundColor,
     this.fieldSuffixIcon,
     this.onChanged,
     this.excludeSelected = true,
+    this.isMultipleSelection = false,
     this.fillColor = Colors.white,
   })  : assert(items.isNotEmpty, 'Items list must contain at least one item.'),
         assert(
-          controller.text.isEmpty || items.contains(controller.text),
+          controller.text.isEmpty ||
+              items.contains(controller.text) ||
+              (isMultipleSelection && controller.text.contains(',')),
           'Controller value must match with one of the item in items list.',
         ),
         assert(
@@ -78,18 +88,24 @@ class CustomDropdown extends StatefulWidget {
     this.selectedStyle,
     this.errorText,
     this.errorStyle,
+    this.emptyText,
+    this.emptyStyle,
     this.listItemStyle,
+    this.itemSelectedBackgroundColor,
     this.errorBorderSide,
     this.borderRadius,
     this.borderSide,
     this.fieldSuffixIcon,
     this.onChanged,
     this.excludeSelected = true,
+    this.isMultipleSelection = false,
     this.canCloseOutsideBounds = true,
     this.fillColor = Colors.white,
   })  : assert(items.isNotEmpty, 'Items list must contain at least one item.'),
         assert(
-          controller.text.isEmpty || items.contains(controller.text),
+          controller.text.isEmpty ||
+              items.contains(controller.text) ||
+              (isMultipleSelection && controller.text.contains(',')),
           'Controller value must match with one of the item in items list.',
         ),
         assert(
@@ -133,15 +149,19 @@ class _CustomDropdownState extends State<CustomDropdown> {
           controller: widget.controller,
           size: size,
           listItemBuilder: widget.listItemBuilder,
+          itemSelectedBackgroundColor: widget.itemSelectedBackgroundColor,
           layerLink: layerLink,
           hideOverlay: hideCallback,
           headerStyle:
               widget.controller.text.isNotEmpty ? selectedStyle : hintStyle,
           hintText: hintText,
+          emptyText: widget.emptyText,
+          emptyStyle: widget.emptyStyle,
           listItemStyle: widget.listItemStyle,
           excludeSelected: widget.excludeSelected,
           canCloseOutsideBounds: widget.canCloseOutsideBounds,
           searchType: widget.searchType,
+          isMultilpleSelection: widget.isMultipleSelection,
         );
       },
       child: (showCallback) {

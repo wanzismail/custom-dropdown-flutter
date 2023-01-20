@@ -96,15 +96,27 @@ class _HomeState extends State<Home> {
                   style: _labelStyle,
                 ),
                 const SizedBox(height: 8),
-                CustomDropdown(
+                CustomDropdown.search(
                   hintText: 'Select job role',
                   items: list,
+                  itemSelectedBackgroundColor: Colors.white,
                   controller: jobRoleFormDropdownCtrl,
                   excludeSelected: false,
+                  isMultipleSelection: true,
                   listItemBuilder: (context, result) {
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [Text(result), const Icon(Icons.person)],
+                      children: [
+                        Text(result),
+                        Icon(
+                          Icons.person,
+                          color: jobRoleFormDropdownCtrl.text
+                                  .split(', ')
+                                  .contains(result)
+                              ? Colors.green
+                              : Colors.grey,
+                        )
+                      ],
                     );
                   },
                 ),

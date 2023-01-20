@@ -19,10 +19,17 @@ class _DropdownOverlay extends StatefulWidget {
   final String hintText;
   final TextStyle? headerStyle;
   final TextStyle? listItemStyle;
+  final String? emptyText;
+  final TextStyle? emptyStyle;
+
   final bool? excludeSelected;
   final bool? canCloseOutsideBounds;
   final _SearchType? searchType;
   final _ListItemBuilder? listItemBuilder;
+  final Color? itemSelectedBackgroundColor;
+
+  final bool isMultilpleSelection;
+
   const _DropdownOverlay({
     Key? key,
     required this.items,
@@ -37,6 +44,10 @@ class _DropdownOverlay extends StatefulWidget {
     this.canCloseOutsideBounds,
     this.searchType,
     this.listItemBuilder,
+    this.itemSelectedBackgroundColor,
+    this.emptyText,
+    this.emptyStyle,
+    this.isMultilpleSelection = false,
   }) : super(key: key);
 
   @override
@@ -50,6 +61,7 @@ class _DropdownOverlayState extends State<_DropdownOverlay> {
   late String headerText;
   late List<String> items;
   late List<String> filteredItems;
+  List<String> selectedItems = [];
   final key1 = GlobalKey(), key2 = GlobalKey();
   final scrollController = ScrollController();
 
@@ -83,11 +95,32 @@ class _DropdownOverlayState extends State<_DropdownOverlay> {
     if (widget.excludeSelected! &&
         widget.items.length > 1 &&
         widget.controller.text.isNotEmpty) {
-      items = widget.items.where((item) => item != headerText).toList();
+      items = widget.items.where((item) {
+        return (item != headerText) ||
+            (headerText.contains(',') &&
+                selectedItems.where((element) => element != item).isNotEmpty);
+      }).toList();
     } else {
       items = widget.items;
     }
     filteredItems = items;
+
+    if (widget.isMultilpleSelection &&
+        widget.controller.text.isNotEmpty &&
+        !widget.controller.text.contains(',') &&
+        !selectedItems.contains(widget.controller.text)) {
+      selectedItems.add(widget.controller.text);
+      print('Masuk 1');
+    } else if (widget.isMultilpleSelection &&
+        widget.controller.text.contains(',')) {
+      widget.controller.text.split(', ').forEach((element) {
+        if (!selectedItems.contains(element)) {
+          selectedItems.add(element);
+        }
+      });
+
+      print('Masuk 2' + widget.controller.text.split(', ').toString());
+    }
   }
 
   @override
@@ -113,6 +146,13 @@ class _DropdownOverlayState extends State<_DropdownOverlay> {
       size: 20,
     );
 
+    // empty style :: if provided then merge with default
+    final emptyStyle = const TextStyle(
+      fontSize: 16,
+      color: Color(0xFFA7A7A7),
+      fontWeight: FontWeight.w400,
+    ).merge(widget.emptyStyle);
+
     // overlay offset
     final overlayOffset = Offset(-12, displayOverlayBottom ? 0 : 60);
 
@@ -131,19 +171,34 @@ class _DropdownOverlayState extends State<_DropdownOverlay> {
             padding: listPadding,
             headerText: headerText,
             itemTextStyle: widget.listItemStyle,
+            itemSelectedBackgroundColor: widget.itemSelectedBackgroundColor,
             onItemSelect: (value) {
-              if (headerText != value) {
+              if (widget.isMultilpleSelection) {
+                if (selectedItems
+                        .where((element) => element == value)
+                        .isNotEmpty &&
+                    !widget.excludeSelected!) {
+                  selectedItems.remove(value);
+                } else if ((selectedItems
+                            .where((element) => element != value)
+                            .isNotEmpty &&
+                        !widget.excludeSelected!) ||
+                    !selectedItems.contains(value)) {
+                  selectedItems.add(value);
+                }
+                widget.controller.text = selectedItems.join(', ');
+              } else if (headerText != value) {
                 widget.controller.text = value;
               }
               setState(() => displayOverly = false);
             },
           )
-        : const Center(
+        : Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.0),
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Text(
-                'No result found.',
-                style: TextStyle(fontSize: 16),
+                widget.emptyText ?? 'No result found.',
+                style: emptyStyle,
               ),
             ),
           );
@@ -275,6 +330,7 @@ class _ItemsList extends StatelessWidget {
   final ValueSetter<String> onItemSelect;
   final EdgeInsets padding;
   final TextStyle? itemTextStyle;
+  final Color? itemSelectedBackgroundColor;
   final _ListItemBuilder listItemBuilder;
 
   const _ItemsList({
@@ -287,6 +343,7 @@ class _ItemsList extends StatelessWidget {
     required this.listItemBuilder,
     required this.padding,
     this.itemTextStyle,
+    this.itemSelectedBackgroundColor,
   }) : super(key: key);
 
   @override
@@ -299,7 +356,8 @@ class _ItemsList extends StatelessWidget {
         padding: padding,
         itemCount: items.length,
         itemBuilder: (_, index) {
-          final selected = !excludeSelected && headerText == items[index];
+          final selected =
+              !excludeSelected && headerText.contains(items[index]);
           return Material(
             color: Colors.transparent,
             child: InkWell(
@@ -307,7 +365,9 @@ class _ItemsList extends StatelessWidget {
               highlightColor: Colors.grey[200],
               onTap: () => onItemSelect(items[index]),
               child: Container(
-                color: selected ? Colors.grey[100] : Colors.transparent,
+                color: selected
+                    ? itemSelectedBackgroundColor ?? Colors.grey[100]
+                    : Colors.transparent,
                 padding: _listItemPadding,
                 child: listItemBuilder(context, items[index]),
               ),
